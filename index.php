@@ -25,6 +25,13 @@ require './dnspod.php';
 $dnspod = new dnspod();
 @session_start();
 
+
+if ($_GET['action'] == 'exit'){
+    unset($_SESSION['token_id']);
+    unset($_SESSION['token_key']);
+    session_destroy();
+}
+
 if ($_GET['action'] == 'domainlist') {
     if ($_POST['token_id'] == '') {
         if ($_SESSION['token_id'] == '') {
