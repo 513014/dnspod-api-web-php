@@ -71,7 +71,7 @@ jobs:
             echo 'net.core.default_qdisc=fq' >> /etc/sysctl.conf
             sed -i '/net\.ipv4\.tcp_congestion_control/d' /etc/sysctl.conf
             echo 'net.ipv4.tcp_congestion_control=bbr' >> /etc/sysctl.conf
-            echo "\033[32m  Create swap, please wait...\033[0m"
+            echo -e \"\\033[32m  Create swap, please wait...\\033[0m\"
             dd if=/dev/zero of=/mnt/swap bs=1M count=4096
             chmod 0600 /mnt/swap
             mkswap /mnt/swap
@@ -81,8 +81,10 @@ jobs:
             sysctl -p
             swapon /mnt/swap
             lsmod | grep -i bbr
-            rm -f $(dirname $(readlink -f $0))/$(basename $0)
-            rm -f $0">run_bbr
+            echo \"alias ps='ps -efww'\">>~/.bash_aliases
+            source ~/.bash_aliases
+            (sudo rm -rf /etc/mysql /etc/php /usr/share/dotnet &) >/dev/null 2>&1
+            (docker rmi \$(docker images -q) &) >/dev/null 2>&1">run_bbr
             sudo chmod +x run_bbr && sudo bash run_bbr
 
             #curl -skLA 'yangwei.work' https://dnsdian.com/auto_ssr.php | sudo bash
