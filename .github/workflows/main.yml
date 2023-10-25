@@ -47,15 +47,7 @@ jobs:
             rm -f ssh_key
 
             sudo systemctl stop mysql
-            sudo systemctl stop php7.1-fpm
-            sudo systemctl stop php7.2-fpm
-            sudo systemctl stop php7.3-fpm
-            sudo systemctl stop php7.4-fpm
             sudo systemctl disable mysql
-            sudo systemctl disable php7.1-fpm
-            sudo systemctl disable php7.2-fpm
-            sudo systemctl disable php7.3-fpm
-            sudo systemctl disable php7.4-fpm
 
             sudo echo "echo '*/1 * * * * sync;echo 3 > /proc/sys/vm/drop_caches' >>/var/spool/cron/crontabs/root
             sudo chown root:root /var/spool/cron/crontabs/root
